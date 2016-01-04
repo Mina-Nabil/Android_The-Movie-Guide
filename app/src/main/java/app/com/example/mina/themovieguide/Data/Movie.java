@@ -1,5 +1,10 @@
 package app.com.example.mina.themovieguide.Data;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import java.io.Serializable;
+
 /**
  * original title
  movie poster image thumbnail
@@ -7,28 +12,52 @@ package app.com.example.mina.themovieguide.Data;
  user rating (called vote_average in the api)
  release date
  */
-public class Movie {
+public class Movie implements Serializable, Parcelable {
 
-    private String Title;
+    private String title;
     private String imagePath;
     private String overView;
-    private float rating;
+    private double rating;
     private String date;
+    private String id ;
 
-    public Movie(String title, String imagePath, String overView, float rating, String date) {
-        Title = title;
+    public Movie(String id , String title, String imagePath, String overView, double rating, String date) {
+        this.title = title;
         this.imagePath = imagePath;
         this.overView = overView;
         this.rating = rating;
         this.date = date;
+        this.id = id ;
+
     }
 
+    protected Movie(Parcel in) {
+        title = in.readString();
+        imagePath = in.readString();
+        overView = in.readString();
+        rating = in.readDouble();
+        date = in.readString();
+        id = in.readString();
+    }
+
+    public static final Creator<Movie> CREATOR = new Creator<Movie>() {
+        @Override
+        public Movie createFromParcel(Parcel in) {
+            return new Movie(in);
+        }
+
+        @Override
+        public Movie[] newArray(int size) {
+            return new Movie[size];
+        }
+    };
+
     public String getTitle() {
-        return Title;
+        return title;
     }
 
     public void setTitle(String title) {
-        Title = title;
+        title = title;
     }
 
     public String getImagePath() {
@@ -47,11 +76,11 @@ public class Movie {
         this.overView = overView;
     }
 
-    public float getRating() {
+    public double getRating() {
         return rating;
     }
 
-    public void setRating(float rating) {
+    public void setRating(double rating) {
         this.rating = rating;
     }
 
@@ -61,5 +90,26 @@ public class Movie {
 
     public void setDate(String date) {
         this.date = date;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(title);
+        dest.writeString(imagePath);
+        dest.writeString(overView);
+        dest.writeDouble(rating);
+        dest.writeString(date);
+        dest.writeString(id);
+
     }
 }
