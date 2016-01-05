@@ -3,8 +3,6 @@ package app.com.example.mina.themovieguide.Data;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.io.Serializable;
-
 /**
  * original title
  movie poster image thumbnail
@@ -12,7 +10,7 @@ import java.io.Serializable;
  user rating (called vote_average in the api)
  release date
  */
-public class Movie implements Serializable, Parcelable {
+public class Movie implements Parcelable {
 
     private String title;
     private String imagePath;

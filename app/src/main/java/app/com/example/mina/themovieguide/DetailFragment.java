@@ -16,10 +16,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RatingBar;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -65,7 +65,7 @@ public class DetailFragment extends Fragment {
     private RatingBar detRate;
     private ListView detRevList;
     private ListView detTrailList;
-    private Button detFav;
+    private Switch detFav;
     private ReviewAdapter reviewAdapter;
     private TrailerAdapter trailerAdapter;
     private ArrayList<Review> reviewList;
@@ -142,7 +142,7 @@ public class DetailFragment extends Fragment {
            detRate = (RatingBar) rootView.findViewById(R.id.details_rating);
            detRevList = (ListView) rootView.findViewById(R.id.list_reviews);
            detTrailList = (ListView) rootView.findViewById(R.id.list_trailers);
-           detFav = (Button) rootView.findViewById(R.id.but_Fav);
+           detFav = (Switch) rootView.findViewById(R.id.switch_Fav);
            detTrailerLabel = (TextView) rootView.findViewById(R.id.txt_trailerlabel);
            detReviewLabel = (TextView) rootView.findViewById(R.id.txt_reviewlabel);
 
@@ -154,7 +154,7 @@ public class DetailFragment extends Fragment {
 
            if (detBundle != null) {
 
-               detMovie = (Movie) detBundle.getSerializable("Movie_Object");
+               detMovie =  detBundle.getParcelable("Movie_Object");
                if (detMovie != null) {
                    updateFragment(detBundle);
                }
@@ -184,21 +184,30 @@ public class DetailFragment extends Fragment {
     void updateFragment(Bundle b) {
 
 
-        if(detBundle == null)
+
         detBundle = b ;
-        detMovie = (Movie) b.getSerializable("Movie_Object");
+        detMovie = b.getParcelable("Movie_Object");
         ShowLabels();
         detTitle.setText(detMovie.getTitle());
         detYear.setText(detMovie.getDate());
         detOverview.setText(detMovie.getOverView());
         detRate.setRating(((float) detMovie.getRating()));
-        Picasso.with(getActivity()).load("http://image.tmdb.org/t/p/w185/" + detMovie.getImagePath()).into(detImageview);
+        Picasso.with(getActivity()).load("http://image.tmdb.org/t/p/w185/" + detMovie.getImagePath())
+                .placeholder(R.drawable.movie_placeholder)
+                .error(R.drawable.error_placeholder)
+                .into(detImageview);
 
 
         detFav.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                insertMovieData();
+               boolean Checked =  ((Switch) v).isChecked();
+                if (Checked) {
+                    insertMovieData();
+                }
+                if (!Checked) {
+                    deleteMovieData();
+                }
             }
         });
 
@@ -216,6 +225,33 @@ public class DetailFragment extends Fragment {
         updateTrailers();
     }
 
+    private void deleteMovieData() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                getActivity().getContentResolver().delete(
+                        MovieProvider.Movies.withId(detMovie.getId()),
+                        null, null
+
+                );
+
+                getActivity().getContentResolver().delete(
+                        MovieProvider.Trailers.CONTENT_Uri,
+                        TrailerColumns.TrailerMovieID + " = " + detMovie.getId(),
+                        null
+
+                );
+
+                getActivity().getContentResolver().delete(
+                        MovieProvider.Reviews.CONTENT_Uri,
+                        ReviewColumns.ReviewMovieID + " = " + detMovie.getId(),
+                        null
+
+                );
+                return null;
+            }
+        }.execute();
+    }
 
     private void ShowLabels() {
         detTitle.setVisibility(View.VISIBLE);
@@ -230,65 +266,73 @@ public class DetailFragment extends Fragment {
         detTrailerLabel.setVisibility(View.VISIBLE);
     }
 
-
     private boolean isMovieinDB() {
-        boolean found = false ;
 
-        String[] cols = { MovieColumns.MovieID};
-        mCursor = getActivity().getContentResolver().query(
-                MovieProvider.Movies.withId(detMovie.getId()),
-                cols, null ,null ,null );
+                boolean ret ;
+                String[] cols = { MovieColumns.MovieID};
+                mCursor = getActivity().getContentResolver().query(
+                        MovieProvider.Movies.withId(detMovie.getId()),
+                        cols, null ,null ,null );
 
-        if (mCursor.getCount() > 0)
-            found = true ;
-        else found = false ;
+                if (mCursor.getCount() > 0)
+                    ret = true ;
+                else ret = false ;
 
-        return found ;
+               detFav.setChecked(ret);
+                return ret;
     }
 
     private void insertMovieData() {
 
-        ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
 
-        ContentProviderOperation.Builder builder = ContentProviderOperation
-                .newInsert(MovieProvider.Movies.CONTENT_Uri);
-        builder.withValue(MovieColumns.MovieID,detMovie.getId());
-        builder.withValue(MovieColumns.MovieDate, detMovie.getDate());
-        builder.withValue(MovieColumns.MovieImagePath, detMovie.getImagePath());
-        builder.withValue(MovieColumns.MovieOverview, detMovie.getOverView());
-        builder.withValue(MovieColumns.MovieRating, detMovie.getRating());
-        builder.withValue(MovieColumns.MovieTitle, detMovie.getTitle());
 
-        ContentProviderOperation.Builder revbuilder = ContentProviderOperation
-                .newInsert(MovieProvider.Reviews.CONTENT_Uri);
-        for (Review it: reviewList) {
-            revbuilder.withValue(ReviewColumns.ReviewAuthor, it.getAuthor());
-            revbuilder.withValue(ReviewColumns.ReviewContent, it.getContent());
-            revbuilder.withValue(ReviewColumns.ReviewMovieID, detMovie.getId());
-        }
+                ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
 
-        ContentProviderOperation.Builder trailbuilder = ContentProviderOperation
-                .newInsert(MovieProvider.Trailers.CONTENT_Uri);
-        for (Trailer it : trailerList){
-            trailbuilder.withValue(TrailerColumns.TrailerKey, it.getKey());
-            trailbuilder.withValue(TrailerColumns.TrailerMovieID, detMovie.getId());
-            trailbuilder.withValue(TrailerColumns.TrailerTitle, it.getName());
-        }
+                ContentProviderOperation.Builder builder = ContentProviderOperation
+                        .newInsert(MovieProvider.Movies.CONTENT_Uri);
+                builder.withValue(MovieColumns.MovieID,detMovie.getId());
+                builder.withValue(MovieColumns.MovieDate, detMovie.getDate());
+                builder.withValue(MovieColumns.MovieImagePath, detMovie.getImagePath());
+                builder.withValue(MovieColumns.MovieOverview, detMovie.getOverView());
+                builder.withValue(MovieColumns.MovieRating, detMovie.getRating());
+                builder.withValue(MovieColumns.MovieTitle, detMovie.getTitle());
 
-        batchOperations.add(builder.build());
-        if(reviewList.size() > 0 ) batchOperations.add(revbuilder.build());
-        if(trailerList.size() > 0) batchOperations.add(trailbuilder.build());
+                ContentProviderOperation.Builder revbuilder = ContentProviderOperation
+                        .newInsert(MovieProvider.Reviews.CONTENT_Uri);
+                for (Review it: reviewList) {
+                    revbuilder.withValue(ReviewColumns.ReviewAuthor, it.getAuthor());
+                    revbuilder.withValue(ReviewColumns.ReviewContent, it.getContent());
+                    revbuilder.withValue(ReviewColumns.ReviewMovieID, detMovie.getId());
+                }
 
-        try {
-            getActivity().getContentResolver().applyBatch(MovieProvider.AUTHORITY, batchOperations);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        } catch (OperationApplicationException e) {
-            e.printStackTrace();
-        }
+                ContentProviderOperation.Builder trailbuilder = ContentProviderOperation
+                        .newInsert(MovieProvider.Trailers.CONTENT_Uri);
+                for (Trailer it : trailerList){
+                    trailbuilder.withValue(TrailerColumns.TrailerKey, it.getKey());
+                    trailbuilder.withValue(TrailerColumns.TrailerMovieID, detMovie.getId());
+                    trailbuilder.withValue(TrailerColumns.TrailerTitle, it.getName());
+                }
+
+                batchOperations.add(builder.build());
+                if(reviewList.size() > 0 ) batchOperations.add(revbuilder.build());
+                if(trailerList.size() > 0) batchOperations.add(trailbuilder.build());
+
+                try {
+                    getActivity().getContentResolver().applyBatch(MovieProvider.AUTHORITY, batchOperations);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                } catch (OperationApplicationException e) {
+                    e.printStackTrace();
+                }
+
+                return null;
+            }
+        }.execute();
 
     }
-
 
     void updateReviews() {
 
@@ -303,29 +347,29 @@ public class DetailFragment extends Fragment {
     }
 
 
-
-
     private void getRevDataFromDB() {
 
-        String [] cols = {ReviewColumns.ReviewAuthor, ReviewColumns.ReviewContent};
+
+        String[] cols = {ReviewColumns.ReviewAuthor, ReviewColumns.ReviewContent};
 
         mCursor = getActivity().getContentResolver().query(
                 MovieProvider.Reviews.CONTENT_Uri,
                 cols,
                 ReviewColumns.ReviewMovieID + " = " + detMovie.getId(),
                 null, null
-        ) ;
+        );
 
-        if(mCursor.getCount() > 0){
+        if (mCursor.getCount() > 0) {
 
             mCursor.moveToFirst();
             do {
                 reviewList.add(new Review(mCursor.getString(0), mCursor.getString(1)));
-            }while(mCursor.moveToNext());
+            } while (mCursor.moveToNext());
 
             reviewAdapter.notifyDataSetChanged();
-        }
 
+
+        }
     }
 
 
@@ -339,25 +383,28 @@ public class DetailFragment extends Fragment {
     }
 
     private void getTrailerDataFromDB() {
-        String [] cols = {TrailerColumns.TrailerTitle, TrailerColumns.TrailerKey};
 
-        mCursor = getActivity().getContentResolver().query(
-                MovieProvider.Trailers.CONTENT_Uri,
-                cols,
-                TrailerColumns.TrailerMovieID + " = " + detMovie.getId(),
-                null, null
-        ) ;
+                String [] cols = {TrailerColumns.TrailerTitle, TrailerColumns.TrailerKey};
 
-        if(mCursor.getCount() > 0){
+                mCursor = getActivity().getContentResolver().query(
+                        MovieProvider.Trailers.CONTENT_Uri,
+                        cols,
+                        TrailerColumns.TrailerMovieID + " = " + detMovie.getId(),
+                        null, null
+                ) ;
 
-            mCursor.moveToFirst();
-            do {
-                trailerList.add(new Trailer(mCursor.getString(0), mCursor.getString(1)));
-            }while(mCursor.moveToNext());
+                if(mCursor.getCount() > 0){
 
-            trailerAdapter.notifyDataSetChanged();
-        }
-    }
+                    mCursor.moveToFirst();
+                    do {
+                        trailerList.add(new Trailer(mCursor.getString(0), mCursor.getString(1)));
+                    }while(mCursor.moveToNext());
+
+                    trailerAdapter.notifyDataSetChanged();
+                }
+
+
+            }
 
 
     class FetchMovieReviews extends AsyncTask<String, Void, ArrayList<Review>> {
@@ -434,7 +481,7 @@ public class DetailFragment extends Fragment {
         protected void onPostExecute(ArrayList<Review> reviews) {
             super.onPostExecute(reviews);
 
-            if(reviews.size() > 0) {
+            if(reviews != null && reviews.size() > 0 ) {
                 reviewList.addAll(reviews);
                 reviewAdapter.notifyDataSetChanged();
             }
@@ -539,7 +586,7 @@ public class DetailFragment extends Fragment {
         @Override
         protected void onPostExecute(ArrayList<Trailer> trailers) {
             super.onPostExecute(trailers);
-            if (trailers.size() > 0) {
+            if (trailers != null && trailers.size() > 0) {
 
 
                 trailerList.addAll(trailers);
@@ -566,8 +613,6 @@ public class DetailFragment extends Fragment {
             return retArray;
         }
     }
-
-
 
 
 

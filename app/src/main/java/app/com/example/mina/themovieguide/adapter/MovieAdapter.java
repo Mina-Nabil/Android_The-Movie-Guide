@@ -50,7 +50,7 @@ public class MovieAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
 
-
+        if(convertView == null)
             convertView = inflater.inflate(R.layout.item, null);
 
             ImageView image = (ImageView) convertView.findViewById(R.id.item_image);
@@ -60,7 +60,10 @@ public class MovieAdapter extends BaseAdapter {
 
             //title.setText(m.getTitle());
             Picasso.with(view).cancelRequest(image);
-            Picasso.with(view).load("http://image.tmdb.org/t/p/w342/" + m.getImagePath()).into(image);
+            Picasso.with(view).load("http://image.tmdb.org/t/p/w342/" + m.getImagePath())
+                    .placeholder(R.drawable.movie_placeholder)
+                    .error(R.drawable.error_placeholder)
+                    .into(image);
 
 
 

@@ -58,19 +58,24 @@
             android:clickable="false"
             android:isIndicator="true"/>
 
-        <Button
+
+
+        <Switch
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/but_Fav"
-            android:layout_below="@id/details_rating"
+            android:text="@string/Add_to_Fav"
+            android:id="@+id/switch_Fav"
+            android:textSize="30dp"
             android:layout_alignEnd="@id/details_rating"
             android:layout_alignRight="@id/details_rating"
-            android:text="@string/Add_to_Fav"/>
+            android:layout_below="@+id/details_rating"
+            android:layout_toRightOf="@+id/details_image"
+            android:layout_toEndOf="@+id/details_image" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/but_Fav"
+            android:layout_below="@id/switch_Fav"
             android:id="@+id/txt_trailerlabel"
             android:layout_alignLeft="@id/details_overview"
             android:layout_alignStart="@id/details_overview"
@@ -103,6 +108,8 @@
             android:layout_below="@id/txt_reviewlabel"
 
             />
+
+
 
     </RelativeLayout>
 </ScrollView>
